@@ -50,3 +50,11 @@ pretrained_models/*
 *_pb2_grpc.py
 *_pb2.py
 *.tar
+
+examples/libritts/cosyvoice2/Dataset/
+data_notextfrontend
+exp_notextfrontend
+tensorboard_notextfrontend
+data_textfrontend
+exp_textfrontend
+tensorboard_textfrontend

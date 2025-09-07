@@ -214,7 +214,7 @@ train_conf:
     max_epoch: 200
     grad_clip: 5
     accum_grad: 2
-    log_interval: 100
+    log_interval: 2000
     save_per_step: -1
 
 # gan train conf
