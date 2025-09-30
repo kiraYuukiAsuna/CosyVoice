@@ -51,6 +51,8 @@ pretrained_models/*
 *_pb2.py
 *.tar
 
+custom/.gradio/
+
 examples/libritts/cosyvoice2/Dataset/
 data_notextfrontend
 exp_notextfrontend
