@@ -42,28 +42,51 @@ num_workers=8
 prefetch=100
 train_engine=torch_ddp
 
-for model in llm flow; do
-  echo "Start training $model for role $ROLE_NAME"
-  torchrun --nnodes=1 --nproc_per_node=$num_gpus \
-      --rdzv_id=$job_id --rdzv_backend="c10d" --rdzv_endpoint="localhost:1234" \
-    cosyvoice/bin/train.py \
-    --train_engine $train_engine \
-    --config conf/cosyvoice2.yaml \
-    --train_data data/train.data.list \
-    --cv_data data/train.data.list \
-    --qwen_pretrain_path "$PRETRAINED_DIR/CosyVoice-BlankEN" \
-    --model $model \
-    --checkpoint "$PRETRAINED_DIR/$model.pt" \
-    --model_dir "$(pwd)/exp/cosyvoice2/$model/$train_engine/${ROLE_NAME}" \
-    --tensorboard_dir "$(pwd)/tensorboard/cosyvoice2/$model/$train_engine/${ROLE_NAME}" \
-    --ddp.dist_backend $dist_backend \
-    --num_workers ${num_workers} \
-    --prefetch ${prefetch} \
-    --pin_memory \
-    --use_amp \
-    --deepspeed_config ./conf/ds_stage2.json \
-    --deepspeed.save_states model+optimizer
-  echo "Training finished for $model"
-done
+
+echo "Start training llm for role $ROLE_NAME"
+torchrun --nnodes=1 --nproc_per_node=$num_gpus \
+    --rdzv_id=$job_id --rdzv_backend="c10d" --rdzv_endpoint="localhost:1234" \
+cosyvoice/bin/train.py \
+--train_engine $train_engine \
+--config conf/cosyvoice2_llm.yaml \
+--train_data data/train.data.list \
+--cv_data data/train.data.list \
+--qwen_pretrain_path "$PRETRAINED_DIR/CosyVoice-BlankEN" \
+--model llm \
+--checkpoint "$PRETRAINED_DIR/llm.pt" \
+--model_dir "$(pwd)/exp/cosyvoice2/llm/$train_engine/${ROLE_NAME}" \
+--tensorboard_dir "$(pwd)/tensorboard/cosyvoice2/llm/$train_engine/${ROLE_NAME}" \
+--ddp.dist_backend $dist_backend \
+--num_workers ${num_workers} \
+--prefetch ${prefetch} \
+--pin_memory \
+--use_amp \
+--deepspeed_config ./conf/ds_stage2.json \
+--deepspeed.save_states model+optimizer
+echo "Training finished for llm"
+
+
+echo "Start training flow for role $ROLE_NAME"
+torchrun --nnodes=1 --nproc_per_node=$num_gpus \
+    --rdzv_id=$job_id --rdzv_backend="c10d" --rdzv_endpoint="localhost:1234" \
+cosyvoice/bin/train.py \
+--train_engine $train_engine \
+--config conf/cosyvoice2_flow.yaml \
+--train_data data/train.data.list \
+--cv_data data/train.data.list \
+--qwen_pretrain_path "$PRETRAINED_DIR/CosyVoice-BlankEN" \
+--model flow \
+--checkpoint "$PRETRAINED_DIR/flow.pt" \
+--model_dir "$(pwd)/exp/cosyvoice2/flow/$train_engine/${ROLE_NAME}" \
+--tensorboard_dir "$(pwd)/tensorboard/cosyvoice2/flow/$train_engine/${ROLE_NAME}" \
+--ddp.dist_backend $dist_backend \
+--num_workers ${num_workers} \
+--prefetch ${prefetch} \
+--pin_memory \
+--use_amp \
+--deepspeed_config ./conf/ds_stage2.json \
+--deepspeed.save_states model+optimizer
+echo "Training finished for flow"
+
 
 echo "Done: training artifacts under exp/cosyvoice2/flow/$train_engine/${ROLE_NAME}"

@@ -21,12 +21,14 @@ import json
 import re
 import datetime
 import yaml
+import glob
+import shutil
 
 import deepspeed
 import torch.optim as optim
 import torch.distributed as dist
 
-from torch.utils.tensorboard import SummaryWriter
+from torch.utils.tensorboard.writer import SummaryWriter
 from torch.utils.data import DataLoader
 from torch.nn.utils import clip_grad_norm_
 
@@ -213,6 +215,14 @@ def save_model(model, model_name, info_dict):
             fout.write(data)
         logging.info('[Rank {}] Checkpoint: save to checkpoint {}'.format(rank, save_model_path))
 
+        # After saving, keep only top-k best validation checkpoints
+        # Only run on CV saves to avoid pruning on training-only artifacts
+        try:
+            if str(info_dict.get('tag', '')).upper() == 'CV':
+                _prune_checkpoints_by_val_loss(model_dir=model_dir, keep_num=3)
+        except Exception as e:
+            logging.warning(f"Prune checkpoints failed: {e}")
+
 
 def cosyvoice_join(group_join, info_dict):
     world_size = int(os.environ.get('WORLD_SIZE', 1))
@@ -233,6 +243,70 @@ def cosyvoice_join(group_join, info_dict):
             return True
     else:
         return False
+
+
+def _prune_checkpoints_by_val_loss(model_dir: str, keep_num: int = 300):
+    """Keep only top-k checkpoints with lowest validation loss.
+
+    This inspects YAML sidecar files saved during CV, sorts by loss_dict['loss'],
+    and removes extra checkpoints beyond keep_num. It handles both Torch DDP .pt
+    files and DeepSpeed checkpoint directories, along with their .yaml files.
+
+    Args:
+        model_dir: Directory containing checkpoints.
+        keep_num: Number of best checkpoints to keep.
+    """
+    # Collect yaml files and filter out unrelated ones (align with user's logic)
+    yaml_paths = glob.glob(os.path.join(model_dir, '*.yaml'))
+    yaml_paths = [
+        p for p in yaml_paths
+        if not (os.path.basename(p).startswith('train') or os.path.basename(p).startswith('init'))
+    ]
+    if not yaml_paths:
+        return
+
+    # Build val_scores as [epoch, step, loss, tag] per user's snippet
+    # list of (epoch, step, loss, tag, yaml_path, model_name, train_engine)
+    entries = []
+    for yp in yaml_paths:
+        try:
+            with open(yp, 'r') as f:
+                dic_yaml = yaml.load(f, Loader=yaml.BaseLoader)
+            # Parse required fields; BaseLoader yields str for scalars
+            loss = float(dic_yaml['loss_dict']['loss'])
+            epoch = int(dic_yaml['epoch'])
+            step = int(dic_yaml['step'])
+            tag = dic_yaml.get('tag', '')
+            model_name = os.path.splitext(os.path.basename(yp))[0]
+            train_engine = str(dic_yaml.get('train_engine', 'torch_ddp'))
+            entries.append((epoch, step, loss, tag, yp,
+                           model_name, train_engine))
+        except Exception:
+            continue
+    # Sort ascending by loss (best first)
+    entries.sort(key=lambda x: x[2])
+
+    if len(entries) <= keep_num:
+        return
+
+    # Keep top-k; remove extras
+    for _, _, _, _, yaml_path, model_name, train_engine in entries[keep_num:]:
+        try:
+            # Remove YAML file
+            if os.path.exists(yaml_path):
+                os.remove(yaml_path)
+            # Remove checkpoint payload (.pt for torch_ddp; directory for deepspeed)
+            if train_engine == 'deepspeed':
+                ckpt_dir = os.path.join(model_dir, model_name)
+                if os.path.isdir(ckpt_dir):
+                    shutil.rmtree(ckpt_dir, ignore_errors=True)
+            else:
+                ckpt_pt = os.path.join(model_dir, f"{model_name}.pt")
+                if os.path.exists(ckpt_pt):
+                    os.remove(ckpt_pt)
+            logging.info(f"Pruned checkpoint: {model_name}")
+        except Exception as e:
+            logging.warning(f"Failed to prune {model_name}: {e}")
 
 
 def batch_forward(model, batch, scaler, info_dict, ref_model=None, dpo_loss=None):
