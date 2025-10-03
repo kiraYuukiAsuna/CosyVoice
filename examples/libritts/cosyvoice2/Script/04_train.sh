@@ -34,7 +34,6 @@ fi
 cat "data/${ROLE_NAME}/parquet/data.list" > data/train.data.list
 
 # Train settings
-export CUDA_VISIBLE_DEVICES="0"
 num_gpus=$(echo $CUDA_VISIBLE_DEVICES | awk -F "," '{print NF}')
 job_id=1986
 dist_backend="nccl"

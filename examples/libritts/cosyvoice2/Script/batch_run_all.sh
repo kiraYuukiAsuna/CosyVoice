@@ -28,7 +28,7 @@ cd "$ROOT_DIR"
 . ./path.sh || exit 1
 
 # 配置
-export CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0}
+export CUDA_VISIBLE_DEVICES=0
 CONFIRM_BEFORE_RUN=true
 
 # 各阶段脚本（按顺序）
