@@ -55,3 +55,4 @@ pretrained_models/*
 .gradio/
 Python3.10.11/
 Dataset/
+.split_cache
