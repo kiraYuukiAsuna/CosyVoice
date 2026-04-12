@@ -50,3 +50,8 @@ pretrained_models/*
 *_pb2_grpc.py
 *_pb2.py
 *.tar
+
+# Modified
+.gradio/
+Python3.10.11/
+Dataset/
