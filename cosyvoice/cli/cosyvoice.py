@@ -26,7 +26,9 @@ from cosyvoice.utils.class_utils import get_model_type
 
 class CosyVoice:
 
-    def __init__(self, model_dir, load_jit=False, load_trt=False, fp16=False, trt_concurrent=1):
+    def __init__(self, model_dir, load_jit=False, load_trt=False, fp16=False, trt_concurrent=1, voiceModelPath=""):
+        if voiceModelPath == "":
+            voiceModelPath = model_dir
         self.model_dir = model_dir
         self.fp16 = fp16
         if not os.path.exists(model_dir):
@@ -41,15 +43,15 @@ class CosyVoice:
                                           configs['feat_extractor'],
                                           '{}/campplus.onnx'.format(model_dir),
                                           '{}/speech_tokenizer_v1.onnx'.format(model_dir),
-                                          '{}/spk2info.pt'.format(model_dir),
+                                          os.path.join(voiceModelPath, 'spk2info.pt'),
                                           configs['allowed_special'])
         self.sample_rate = configs['sample_rate']
         if torch.cuda.is_available() is False and (load_jit is True or load_trt is True or fp16 is True):
             load_jit, load_trt, fp16 = False, False, False
             logging.warning('no cuda device, set load_jit/load_trt/fp16 to False')
         self.model = CosyVoiceModel(configs['llm'], configs['flow'], configs['hift'], fp16)
-        self.model.load('{}/llm.pt'.format(model_dir),
-                        '{}/flow.pt'.format(model_dir),
+        self.model.load(os.path.join(voiceModelPath, 'llm.pt'),
+                        os.path.join(voiceModelPath, 'flow.pt'),
                         '{}/hift.pt'.format(model_dir))
         if load_jit:
             self.model.load_jit('{}/llm.text_encoder.{}.zip'.format(model_dir, 'fp16' if self.fp16 is True else 'fp32'),
@@ -138,7 +140,9 @@ class CosyVoice:
 
 class CosyVoice2(CosyVoice):
 
-    def __init__(self, model_dir, load_jit=False, load_trt=False, load_vllm=False, fp16=False, trt_concurrent=1):
+    def __init__(self, model_dir, load_jit=False, load_trt=False, load_vllm=False, fp16=False, trt_concurrent=1, voiceModelPath=""):
+        if voiceModelPath == "":
+            voiceModelPath = model_dir
         self.model_dir = model_dir
         self.fp16 = fp16
         if not os.path.exists(model_dir):
@@ -153,15 +157,15 @@ class CosyVoice2(CosyVoice):
                                           configs['feat_extractor'],
                                           '{}/campplus.onnx'.format(model_dir),
                                           '{}/speech_tokenizer_v2.onnx'.format(model_dir),
-                                          '{}/spk2info.pt'.format(model_dir),
+                                          os.path.join(voiceModelPath, 'spk2info.pt'),
                                           configs['allowed_special'])
         self.sample_rate = configs['sample_rate']
         if torch.cuda.is_available() is False and (load_jit is True or load_trt is True or load_vllm is True or fp16 is True):
             load_jit, load_trt, load_vllm, fp16 = False, False, False, False
             logging.warning('no cuda device, set load_jit/load_trt/load_vllm/fp16 to False')
         self.model = CosyVoice2Model(configs['llm'], configs['flow'], configs['hift'], fp16)
-        self.model.load('{}/llm.pt'.format(model_dir),
-                        '{}/flow.pt'.format(model_dir),
+        self.model.load(os.path.join(voiceModelPath, 'llm.pt'),
+                        os.path.join(voiceModelPath, 'flow.pt'),
                         '{}/hift.pt'.format(model_dir))
         if load_vllm:
             self.model.load_vllm('{}/vllm'.format(model_dir))
@@ -188,7 +192,9 @@ class CosyVoice2(CosyVoice):
 
 class CosyVoice3(CosyVoice2):
 
-    def __init__(self, model_dir, load_trt=False, load_vllm=False, fp16=False, trt_concurrent=1):
+    def __init__(self, model_dir, load_trt=False, load_vllm=False, fp16=False, trt_concurrent=1, voiceModelPath=""):
+        if voiceModelPath == "":
+            voiceModelPath = model_dir
         self.model_dir = model_dir
         self.fp16 = fp16
         if not os.path.exists(model_dir):
@@ -203,15 +209,15 @@ class CosyVoice3(CosyVoice2):
                                           configs['feat_extractor'],
                                           '{}/campplus.onnx'.format(model_dir),
                                           '{}/speech_tokenizer_v3.onnx'.format(model_dir),
-                                          '{}/spk2info.pt'.format(model_dir),
+                                          os.path.join(voiceModelPath, 'spk2info.pt'),
                                           configs['allowed_special'])
         self.sample_rate = configs['sample_rate']
         if torch.cuda.is_available() is False and (load_trt is True or fp16 is True):
             load_trt, fp16 = False, False
             logging.warning('no cuda device, set load_trt/fp16 to False')
         self.model = CosyVoice3Model(configs['llm'], configs['flow'], configs['hift'], fp16)
-        self.model.load('{}/llm.pt'.format(model_dir),
-                        '{}/flow.pt'.format(model_dir),
+        self.model.load(os.path.join(voiceModelPath, 'llm.pt'),
+                        os.path.join(voiceModelPath, 'flow.pt'),
                         '{}/hift.pt'.format(model_dir))
         if load_vllm:
             self.model.load_vllm('{}/vllm'.format(model_dir))
