@@ -72,7 +72,6 @@ for idx in "${!MODELS[@]}"; do
     --ddp.dist_backend "$dist_backend" \
     --num_workers "$num_workers" \
     --prefetch "$prefetch" \
-    --pin_memory \
     --use_amp \
     --deepspeed_config ./conf/ds_stage2.json \
     --deepspeed.save_states model+optimizer
