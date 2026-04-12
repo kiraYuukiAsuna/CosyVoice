@@ -9,9 +9,15 @@ conda activate cosyvoice
 
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 ROOT_DIR=$(dirname "$SCRIPT_DIR")
+PREPARE_DATA_PY="$SCRIPT_DIR/prepare_data.py"
 cd "$ROOT_DIR"
 
 . ./path.sh || exit 1
+
+if [[ ! -f "$PREPARE_DATA_PY" ]]; then
+  echo "prepare_data.py not found: $PREPARE_DATA_PY" >&2
+  exit 6
+fi
 
 ROLE_NAME=${1:-}
 CV_RATIO=${2:-${CV_RATIO:-0.05}}
@@ -86,11 +92,11 @@ echo "  - train split: $TRAIN_COUNT"
 echo "  - cv split: $CV_COUNT"
 
 mkdir -p "data/${ROLE_NAME}_train" "data/${ROLE_NAME}_test"
-python local/prepare_data.py \
+python "$PREPARE_DATA_PY" \
   --src_dir "$TRAIN_SRC" \
   --des_dir "data/${ROLE_NAME}_train" \
   "${PREPARE_ARGS[@]}"
-python local/prepare_data.py \
+python "$PREPARE_DATA_PY" \
   --src_dir "$CV_SRC" \
   --des_dir "data/${ROLE_NAME}_test" \
   "${PREPARE_ARGS[@]}"

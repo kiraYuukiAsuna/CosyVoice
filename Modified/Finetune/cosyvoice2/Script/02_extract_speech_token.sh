@@ -15,7 +15,11 @@ cd "$ROOT_DIR"
 
 ROLE_NAME=${1:-}
 PRETRAINED_DIR="$ROOT_DIR/../../../pretrained_models/CosyVoice2-0.5B"
-ONNX_ST="$PRETRAINED_DIR/speech_tokenizer_v3.onnx"
+ONNX_CANDIDATES=(
+  "$PRETRAINED_DIR/speech_tokenizer_v3.onnx"
+  "$PRETRAINED_DIR/speech_tokenizer_v2.onnx"
+)
+ONNX_ST=""
 
 if [[ -z "$ROLE_NAME" ]]; then
   echo "Usage: $0 <role_name>" >&2
@@ -27,12 +31,22 @@ if [[ ! -d "$PRETRAINED_DIR" ]]; then
   exit 3
 fi
 
+for candidate in "${ONNX_CANDIDATES[@]}"; do
+  if [[ -f "$candidate" ]]; then
+    ONNX_ST="$candidate"
+    break
+  fi
+done
+
 if [[ ! -f "$ONNX_ST" ]]; then
-  echo "speech_tokenizer_v3.onnx not found: $ONNX_ST" >&2
+  echo "speech tokenizer onnx not found under: $PRETRAINED_DIR" >&2
+  printf 'checked:\n' >&2
+  printf '  %s\n' "${ONNX_CANDIDATES[@]}" >&2
   exit 4
 fi
 
 echo "Extract speech tokens for role: $ROLE_NAME"
+echo "  - using speech tokenizer: $ONNX_ST"
 for split in train test; do
   data_dir="data/${ROLE_NAME}_${split}"
   if [[ ! -d "$data_dir" ]]; then
