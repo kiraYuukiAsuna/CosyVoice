@@ -14,7 +14,7 @@ logging.getLogger('matplotlib').setLevel(logging.WARNING)
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.normpath(os.path.join(ROOT_DIR, '..', '..'))
-DEFAULT_MODEL_DIR = os.path.join(REPO_ROOT, 'pretrained_models', 'CosyVoice2-0.5B')
+DEFAULT_MODEL_DIR = os.path.join(REPO_ROOT, 'pretrained_models', 'Fun-CosyVoice3-0.5B')
 
 sys.path.append(REPO_ROOT)
 sys.path.append(os.path.normpath(os.path.join(REPO_ROOT, 'third_party', 'Matcha-TTS')))
@@ -33,6 +33,68 @@ logger = logging.getLogger("cosyvoice_api")
 logging.basicConfig(level=logging.INFO)
 
 cosyvoice = None
+END_OF_PROMPT = '<|endofprompt|>'
+COSYVOICE3_ZERO_SHOT_PREFIX = f'You are a helpful assistant.{END_OF_PROMPT}'
+COSYVOICE3_INSTRUCT_PREFIX = 'You are a helpful assistant. '
+
+
+def is_cosyvoice3():
+    return cosyvoice is not None and cosyvoice.__class__.__name__ == 'CosyVoice3'
+
+
+def normalize_zero_shot_prompt_text(text):
+    if not is_cosyvoice3() or text == '':
+        return text
+
+    if text.startswith(COSYVOICE3_ZERO_SHOT_PREFIX):
+        return text
+
+    if text.endswith(END_OF_PROMPT):
+        text = text[:-len(END_OF_PROMPT)]
+
+    if END_OF_PROMPT in text:
+        return text
+
+    return COSYVOICE3_ZERO_SHOT_PREFIX + text
+
+
+def normalize_cross_lingual_text(text):
+    if not is_cosyvoice3() or text == '':
+        return text
+
+    if text.startswith(COSYVOICE3_ZERO_SHOT_PREFIX):
+        return text
+
+    if text.endswith(END_OF_PROMPT):
+        text = text[:-len(END_OF_PROMPT)]
+
+    if END_OF_PROMPT in text:
+        return text
+
+    return COSYVOICE3_ZERO_SHOT_PREFIX + text
+
+
+def normalize_instruct_text(text):
+    if text == '':
+        return text
+
+    if is_cosyvoice3():
+        if text.startswith(COSYVOICE3_INSTRUCT_PREFIX) and text.endswith(END_OF_PROMPT):
+            return text
+
+        normalized_text = text
+        if normalized_text.startswith(COSYVOICE3_ZERO_SHOT_PREFIX):
+            normalized_text = normalized_text[len(COSYVOICE3_ZERO_SHOT_PREFIX):]
+        elif normalized_text.startswith(COSYVOICE3_INSTRUCT_PREFIX):
+            normalized_text = normalized_text[len(COSYVOICE3_INSTRUCT_PREFIX):]
+
+        normalized_text = normalized_text.replace(END_OF_PROMPT, '')
+        return f'{COSYVOICE3_INSTRUCT_PREFIX}{normalized_text}{END_OF_PROMPT}'
+
+    if text.endswith(END_OF_PROMPT):
+        return text
+
+    return f'{text}{END_OF_PROMPT}'
 
 
 def process_model_output(model_output):
@@ -142,6 +204,7 @@ async def inference_zero_shot(
     format: str = Query("wav", description="音频格式，如 wav、mp3 等")
 ):
     try:
+        prompt_text = normalize_zero_shot_prompt_text(prompt_text)
         model_output = cosyvoice.inference_zero_shot(tts_text, prompt_text, prompt_wav.file)
         return build_audio_response(model_output, format)
     except Exception as exc:
@@ -156,6 +219,7 @@ async def inference_cross_lingual(
     format: str = Query("wav", description="音频格式，如 wav、mp3 等")
 ):
     try:
+        tts_text = normalize_cross_lingual_text(tts_text)
         model_output = cosyvoice.inference_cross_lingual(tts_text, prompt_wav.file)
         return build_audio_response(model_output, format)
     except Exception as exc:
@@ -171,6 +235,7 @@ async def inference_instruct(
     format: str = Query("wav", description="音频格式，如 wav、mp3 等")
 ):
     try:
+        instruct_text = normalize_instruct_text(instruct_text)
         model_output = cosyvoice.inference_instruct(tts_text, spk_id, instruct_text)
         return build_audio_response(model_output, format)
     except Exception as exc:
@@ -186,6 +251,7 @@ async def inference_instruct2(
     format: str = Query("wav", description="音频格式，如 wav、mp3 等")
 ):
     try:
+        instruct_text = normalize_instruct_text(instruct_text)
         model_output = cosyvoice.inference_instruct2(tts_text, instruct_text, prompt_wav.file)
         return build_audio_response(model_output, format)
     except Exception as exc:

@@ -19,6 +19,8 @@ class TTSWorker(PythonWorkerBase):
     """TTS模型Worker示例"""
 
     cosyvoice = None
+    end_of_prompt = '<|endofprompt|>'
+    cosyvoice3_zero_shot_prefix = f'You are a helpful assistant.{end_of_prompt}'
 
     def _detect_model_type(self, model_dir):
         if os.path.exists(os.path.join(model_dir, "cosyvoice.yaml")):
@@ -95,6 +97,21 @@ class TTSWorker(PythonWorkerBase):
             f"Using model directory: {model_dir} ({model_type})")
         print(f"Using voice model directory: {target_model_path}")
         return AutoModel(model_dir=model_dir, voiceModelPath=target_model_path)
+
+    def _normalize_zero_shot_prompt_text(self, text):
+        if self.cosyvoice is None or self.cosyvoice.__class__.__name__ != 'CosyVoice3' or text == '':
+            return text
+
+        if text.startswith(self.cosyvoice3_zero_shot_prefix):
+            return text
+
+        if text.endswith(self.end_of_prompt):
+            text = text[:-len(self.end_of_prompt)]
+
+        if self.end_of_prompt in text:
+            return text
+
+        return self.cosyvoice3_zero_shot_prefix + text
 
     def initialize(self):
         default_model_dir = self._resolve_default_model_dir()
@@ -200,6 +217,7 @@ class TTSWorker(PythonWorkerBase):
         if mode == "ZeroShot":
             print("......开始生成音频......")
             t1 = time.time()
+            prompt_text = self._normalize_zero_shot_prompt_text(prompt_text)
             model_output = self.cosyvoice.inference_zero_shot(
                 tts_text, prompt_text, prompt_audio_path, speed=speed)
             audio_bytes = self.process_model_output(model_output)

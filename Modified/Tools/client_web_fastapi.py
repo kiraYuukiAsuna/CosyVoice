@@ -140,6 +140,7 @@ with gr.Blocks(title="CosyVoice TTS Client") as demo:
         with gr.TabItem("Zero-shot"):
             with gr.Row():
                 with gr.Column():
+                    gr.Markdown("参考提示：CosyVoice1/2 直接填写参考音频对应文本；CosyVoice3 无需手动写 `You are a helpful assistant.<|endofprompt|>`，服务端会自动补。")
                     zs_text = gr.Textbox(label="Text", lines=5)
                     zs_prompt_text = gr.Textbox(label="Prompt Text", lines=3)
                     zs_prompt_audio = gr.Audio(label="Reference Audio", type="filepath")
@@ -158,6 +159,7 @@ with gr.Blocks(title="CosyVoice TTS Client") as demo:
         with gr.TabItem("Cross-lingual"):
             with gr.Row():
                 with gr.Column():
+                    gr.Markdown("参考提示：CosyVoice3 跨语种文本前缀会由服务端自动补；直接输入目标语言文本即可。")
                     cl_text = gr.Textbox(label="Text", lines=5)
                     cl_prompt_audio = gr.Audio(label="Reference Audio", type="filepath")
                     cl_format = gr.Dropdown(label="Output Format", choices=["wav", "mp3", "flac", "ogg"], value="wav")
@@ -175,6 +177,7 @@ with gr.Blocks(title="CosyVoice TTS Client") as demo:
         with gr.TabItem("Instruct"):
             with gr.Row():
                 with gr.Column():
+                    gr.Markdown("参考提示：CosyVoice1 的 instruct 末尾需要 `<|endofprompt|>`；这里不用手动写，服务端会自动补。CosyVoice3 会自动转成 `You are a helpful assistant. 指令<|endofprompt|>`。")
                     instruct_text = gr.Textbox(label="Text", lines=5)
                     instruct_speaker = gr.Textbox(label="Speaker ID", value="1")
                     instruct_prompt = gr.Textbox(label="Instruction", lines=3)
@@ -193,6 +196,7 @@ with gr.Blocks(title="CosyVoice TTS Client") as demo:
         with gr.TabItem("Instruct2"):
             with gr.Row():
                 with gr.Column():
+                    gr.Markdown("参考提示：CosyVoice2 的 instruct2 末尾需要 `<|endofprompt|>`；这里不用手动写。CosyVoice3 会自动转成 `You are a helpful assistant. 指令<|endofprompt|>`。")
                     instruct2_text = gr.Textbox(label="Text", lines=5)
                     instruct2_prompt = gr.Textbox(label="Instruction", lines=3)
                     instruct2_audio = gr.Audio(label="Reference Audio", type="filepath")
