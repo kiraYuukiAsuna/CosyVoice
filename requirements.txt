@@ -42,3 +42,4 @@ wetext==0.0.4
 wget==3.2
 WeTextProcessing==1.0.4.1; sys_platform == 'linux'
 setuptools<82.0.0
+s3tokenizer

@@ -56,3 +56,4 @@ pretrained_models/*
 Python3.10.11/
 Dataset/
 .split_cache
+.codex
