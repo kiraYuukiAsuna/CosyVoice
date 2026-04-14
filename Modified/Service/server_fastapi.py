@@ -42,7 +42,7 @@ def is_cosyvoice3():
     return cosyvoice is not None and cosyvoice.__class__.__name__ == 'CosyVoice3'
 
 
-def normalize_zero_shot_prompt_text(text):
+def normalize_cosyvoice3_assistant_text(text):
     if not is_cosyvoice3() or text == '':
         return text
 
@@ -56,22 +56,18 @@ def normalize_zero_shot_prompt_text(text):
         return text
 
     return COSYVOICE3_ZERO_SHOT_PREFIX + text
+
+
+def normalize_sft_text(text):
+    return normalize_cosyvoice3_assistant_text(text)
+
+
+def normalize_zero_shot_prompt_text(text):
+    return normalize_cosyvoice3_assistant_text(text)
 
 
 def normalize_cross_lingual_text(text):
-    if not is_cosyvoice3() or text == '':
-        return text
-
-    if text.startswith(COSYVOICE3_ZERO_SHOT_PREFIX):
-        return text
-
-    if text.endswith(END_OF_PROMPT):
-        text = text[:-len(END_OF_PROMPT)]
-
-    if END_OF_PROMPT in text:
-        return text
-
-    return COSYVOICE3_ZERO_SHOT_PREFIX + text
+    return normalize_cosyvoice3_assistant_text(text)
 
 
 def normalize_instruct_text(text):
@@ -189,6 +185,7 @@ async def inference_sft(
     format: str = Query("wav", description="音频格式，如 wav、mp3 等")
 ):
     try:
+        tts_text = normalize_sft_text(tts_text)
         model_output = cosyvoice.inference_sft(tts_text, spk_id)
         return build_audio_response(model_output, format)
     except Exception as exc:

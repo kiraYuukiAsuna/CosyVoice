@@ -113,6 +113,9 @@ class TTSWorker(PythonWorkerBase):
 
         return self.cosyvoice3_zero_shot_prefix + text
 
+    def _normalize_sft_text(self, text):
+        return self._normalize_zero_shot_prompt_text(text)
+
     def initialize(self):
         default_model_dir = self._resolve_default_model_dir()
         ExternalConfig.WorkingDirectoryRootPath = self.get_global(
@@ -234,6 +237,7 @@ class TTSWorker(PythonWorkerBase):
         elif mode == "SFT":
             print("......开始生成音频......")
             t1 = time.time()
+            tts_text = self._normalize_sft_text(tts_text)
             model_output = self.cosyvoice.inference_sft(
                 tts_text, spk_id, speed=speed)
             audio_bytes = self.process_model_output(model_output)
