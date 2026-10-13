@@ -140,8 +140,9 @@ class TTSWorker(PythonWorkerBase):
             ExternalConfig.TTSModelName = self.get_global(
                 '__ExternalConfig_TTSModelName__')
 
+        # Resolve the selected voice before base-model fallback changes the root.
+        target_model_path = self._resolve_target_model_path(default_model_dir)
         model_dir, model_type = self._resolve_model_dir(default_model_dir)
-        target_model_path = self._resolve_target_model_path(model_dir)
 
         llmPath = os.path.join(
             target_model_path, "llm.pt")
@@ -157,8 +158,8 @@ class TTSWorker(PythonWorkerBase):
         try:
             self.cosyvoice = self._load_model(
                 model_dir, target_model_path, model_type)
-        except Exception:
-            raise TypeError('no valid model_type!')
+        except Exception as exc:
+            raise RuntimeError(f'CosyVoice model load failed: {exc}') from exc
 
     def encode(self, sampling_rate, audio, format):
         with BytesIO() as f:
@@ -268,31 +269,6 @@ class TTSWorker(PythonWorkerBase):
 
 
 if __name__ == "__main__":
-    worker = TTSWorker(host="127.0.0.1", port=142541)
-    worker.initialize()
-    audio, t1, t2 = worker.InferenceAudioFromText("SFT", "你好！新的一天，从一场美妙的邂逅开始♪ 你有什么想和我说的吗？", "1", 1.0, "", "")
-    worker.save_bytesio_to_file(audio, "output_sft.wav")
-    audio, t1, t2 = worker.InferenceAudioFromText("ZeroShot", "你好！新的一天，从一场美妙的邂逅开始♪ 你有什么想和我说的吗？", "1", 1.0, "「闲人闲来赏花草，忙人忙得不得了…」", 
-                                                  R"D:\Dataset\处理后文件\BertVits2TrainDataset\原神\胡桃\AudioRaw\vo_BZLQ001_4_hutao_01.wav")
-    worker.save_bytesio_to_file(audio, "output_zeroshot.wav")
-
-    worker.exposed_GenerateTTSAudio("SFT", "测试一下这个TTS服务是否正常工作。", "1", 1.0, "", "")
-
-
-    # parser = argparse.ArgumentParser(description='Python Worker Server')
-    # parser.add_argument('--port', type=int, default=0,
-    #                     help='Port number (0 for auto)')
-    # parser.add_argument('--host', type=str, default='127.0.0.1',
-    #                     help='Host address')
-    # args = parser.parse_args()
-
-    # worker = TTSWorker(host=args.host, port=args.port)
-
-    # try:
-    #     worker.start(blocking=True)
-    # except KeyboardInterrupt:
-    #     print("\n\n[INFO] Worker stopped by user")
-    # except Exception as e:
-    #     print(f"\n[ERROR] Worker error: {e}")
-    #     traceback.print_exc()
-    #     sys.exit(1)
+    # C# sets model globals before calling /initialize. Start the HTTP worker
+    # first; never run standalone examples or load a default model here.
+    TTSWorker(host="127.0.0.1", port=0).start(blocking=True)
